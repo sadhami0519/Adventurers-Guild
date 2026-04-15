@@ -15,7 +15,8 @@ export async function updateUserXpAndSkills(
   skillPointsGained: number,
   questId?: string
 ): Promise<{ newXp: number; newLevel: number; newRank: string; rankChanged: boolean }> {
-  return prisma.$transaction(async (tx) => {
+
+  const result = await prisma.$transaction(async (tx) => {
     // Get current user stats
     const user = await tx.user.findUnique({
       where: { id: userId },
@@ -25,12 +26,13 @@ export async function updateUserXpAndSkills(
     if (!user) throw new Error('User not found');
 
     const profile = await tx.adventurerProfile.findUnique({
-    where: { userId },
-    select: { streakMultiplier: true },
+      where: { userId },
+      select: { streakMultiplier: true },
     });
 
     const multiplier = profile?.streakMultiplier ?? 1.0;
     const xpWithMultiplier = Math.round(xpGained * Number(multiplier));
+
     const newXp = user.xp + xpWithMultiplier;
     const newLevel = user.level + Math.floor(xpWithMultiplier / XP_PER_LEVEL);
     const newRank = getRankForXp(newXp) as UserRank;
@@ -91,6 +93,14 @@ export async function updateUserXpAndSkills(
 
     return { newXp, newLevel, newRank, rankChanged };
   });
+
+  // ✅ Run streak update AFTER transaction completes
+  if (questId) {
+    const { updateStreak } = await import('@/lib/streak-utils');
+    await updateStreak(userId);
+  }
+
+  return result;
 }
 
 /**
