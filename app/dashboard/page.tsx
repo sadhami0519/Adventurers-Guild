@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { ShareGuildCard } from '@/components/guild/ShareGuildCard';
 import { redirect } from 'next/navigation';
 import { prisma, withDbRetry } from '@/lib/db';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
         level: true,
         skillPoints: true,
         name: true,
+        username: true,
         adventurerProfile: {
           select: {
             specialization: true,
